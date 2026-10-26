@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support Ticket Router · Jev 1.14</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: #6366f1;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    h1 {
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: #6b7280;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .subtitle span {
+      color: #9ca3af;
+    }
+
+    /* Main card */
+    .card {
+      background: #111118;
+      border: 1px solid #1f1f2e;
+      border-radius: 20px;
+      padding: 32px;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    /* Sample messages */
+    .samples-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #4b5563;
+      margin-bottom: 10px;
+    }
+    .samples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .sample {
+      background: #1a1a28;
+      border: 1px solid #2a2a3e;
+      color: #9ca3af;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sample:hover {
+      border-color: #6366f1;
+      color: #c7d2fe;
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    /* Textarea */
+    textarea {
+      width: 100%;
+      background: #0d0d16;
+      border: 1px solid #2a2a3e;
+      border-radius: 12px;
+      color: #e8e8f0;
+      font-size: 15px;
+      line-height: 1.6;
+      padding: 16px;
+      resize: none;
+      height: 120px;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    textarea:focus { outline: none; border-color: #6366f1; }
+    textarea::placeholder { color: #3d3d55; }
+
+    /* Button */
+    button#analyzeBtn {
+      margin-top: 12px;
+      width: 100%;
+      background: #6366f1;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    button#analyzeBtn:hover { background: #4f46e5; }
+    button#analyzeBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .results {
+      margin-top: 28px;
+      display: none;
+    }
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .results-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #4b5563;
+    }
+    .meta {
+      display: flex;
+      gap: 12px;
+    }
+    .meta-item {
+      font-size: 11px;
+      color: #4b5563;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .meta-item span { color: #6b7280; }
+
+    .decisions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .decision-card {
+      background: #0d0d16;
+      border: 1px solid #1f1f2e;
+      border-radius: 14px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .decision-card.full-width { grid-column: span 2; }
+    .decision-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .decision-card.category::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+    .decision-card.urgent::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+    .decision-card.sentiment::before { background: linear-gradient(90deg, #10b981, #06b6d4); }
+
+    .dc-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #4b5563;
+      margin-bottom: 12px;
+    }
+    .dc-value {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 8px;
+    }
+    .category .dc-value { color: #a5b4fc; }
+    .urgent .dc-value { color: #fcd34d; }
+    .sentiment .dc-value { color: #6ee7b7; }
+
+    .dc-sub {
+      font-size: 12px;
+      color: #4b5563;
+      margin-bottom: 14px;
+    }
+
+    /* Confidence bar */
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .bar-label {
+      font-size: 11px;
+      color: #6b7280;
+      width: 80px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bar-track {
+      flex: 1;
+      background: #1a1a28;
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: #6366f1;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 0%;
+    }
+    .bar-pct {
+      font-size: 11px;
+      color: #4b5563;
+      width: 32px;
+      text-align: right;
+    }
+
+    /* Noul gauge */
+    .noul-gauge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .noul-track {
+      flex: 1;
+      background: #1a1a28;
+      border-radius: 100px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .noul-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 0%;
+    }
+    .noul-fill.low { background: linear-gradient(90deg, #10b981, #6ee7b7); }
+    .noul-fill.high { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+    .noul-pct {
+      font-size: 12px;
+      color: #6b7280;
+      width: 36px;
+    }
+
+    /* Confidence chip */
+    .confidence-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    /* Error */
+    .error-box {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 10px;
+      padding: 14px;
+      color: #fca5a5;
+      font-size: 13px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #374151;
+    }
+    .footer a { color: #4b5563; text-decoration: none; }
+    .footer a:hover { color: #6b7280; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="badge">
+      <div class="badge-dot"></div>
+      Powered by Jev 1.14
+    </div>
+    <h1>Support Ticket Router</h1>
+    <p class="subtitle">
+      Paste a customer message and Jev returns <span>structured decisions</span><br/>
+      in ~100ms — no parsing, no hallucinations.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="samples-label">Try a sample</div>
+    <div class="samples">
+      <div class="sample" onclick="useSample(this)">I was charged twice this month</div>
+      <div class="sample" onclick="useSample(this)">App keeps crashing on login</div>
+      <div class="sample" onclick="useSample(this)">I want a full refund immediately!!</div>
+      <div class="sample" onclick="useSample(this)">How do I set up my account?</div>
+      <div class="sample" onclick="useSample(this)">Where can I find my invoice?</div>
+    </div>
+
+    <textarea id="messageInput" placeholder="Type or paste a customer support message here…"></textarea>
+
+    <button id="analyzeBtn" onclick="analyze()">
+      <div class="spinner" id="spinner"></div>
+      <span id="btnText">Analyze with Jev</span>
+    </button>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="results" id="results">
+      <div class="results-header">
+        <div class="results-title">Decision output</div>
+        <div class="meta">
+          <div class="meta-item">⚡ <span id="latencyVal">—</span>ms</div>
+          <div class="meta-item">🪙 $<span id="costVal">—</span></div>
+          <div class="meta-item" style="color:#374151" id="modelVal">—</div>
+        </div>
+      </div>
+
+      <div class="decisions-grid">
+        <!-- Category -->
+        <div class="decision-card category">
+          <div class="dc-label">Category</div>
+          <div class="dc-value" id="categoryValue">—</div>
+          <div class="dc-sub">Confidence: <span class="confidence-chip" id="categoryConf">—</span></div>
+          <div id="categoryBars"></div>
+        </div>
+
+        <!-- Urgency -->
+        <div class="decision-card urgent">
+          <div class="dc-label">Urgency</div>
+          <div class="dc-value" id="urgentValue">—</div>
+          <div class="dc-sub" id="urgentSub">—</div>
+          <div class="noul-gauge" style="margin-top:8px">
+            <div class="noul-track">
+              <div class="noul-fill" id="urgentBar"></div>
+            </div>
+            <div class="noul-pct" id="urgentPct">—</div>
+          </div>
+        </div>
+
+        <!-- Sentiment -->
+        <div class="decision-card sentiment full-width">
+          <div class="dc-label">Sentiment</div>
+          <div class="dc-value" id="sentimentValue">—</div>
+          <div class="dc-sub">Confidence: <span class="confidence-chip" id="sentimentConf">—</span></div>
+          <div id="sentimentBars"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Built with <a href="https://docs.typesafe.ai" target="_blank">TypeSafe Jev 1.14</a> via OpenRouter
+  </div>
+
+  <script>
+    function useSample(el) {
+      document.getElementById('messageInput').value = el.textContent;
+    }
+
+    function renderBars(containerId, probabilities, color = '#6366f1') {
+      const container = document.getElementById(containerId);
+      const entries = Object.entries(probabilities).sort((a, b) => b[1] - a[1]);
+      container.innerHTML = entries.map(([label, prob]) => `
+        <div class="bar-row">
+          <div class="bar-label">${label}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="background:${color}" data-width="${(prob * 100).toFixed(0)}%"></div>
+          </div>
+          <div class="bar-pct">${(prob * 100).toFixed(0)}%</div>
+        </div>
+      `).join('');
+      // Animate bars after render
+      requestAnimationFrame(() => {
+        container.querySelectorAll('.bar-fill').forEach(bar => {
+          bar.style.width = bar.dataset.width;
+        });
+      });
+    }
+
+    async function analyze() {
+      const message = document.getElementById('messageInput').value.trim();
+      if (!message) return;
+
+      const btn = document.getElementById('analyzeBtn');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btnText');
+      const errorBox = document.getElementById('errorBox');
+      const results = document.getElementById('results');
+
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Analyzing…';
+      errorBox.style.display = 'none';
+      results.style.display = 'none';
+
+      try {
+        const res = await fetch('/classify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Something went wrong');
+        }
+
+        // Meta
+        document.getElementById('latencyVal').textContent = data.latency;
+        document.getElementById('costVal').textContent = (data.usage.cost).toFixed(6);
+        document.getElementById('modelVal').textContent = data.model;
+
+        // Category
+        const cat = data.category;
+        document.getElementById('categoryValue').textContent = cat.choice;
+        document.getElementById('categoryConf').textContent = (cat.confidence * 100).toFixed(0) + '%';
+        renderBars('categoryBars', cat.probabilities, '#6366f1');
+
+        // Urgency
+        const urgentProb = data.is_urgent.noul;
+        const isUrgent = urgentProb > 0.5;
+        document.getElementById('urgentValue').textContent = isUrgent ? '🔴 Urgent' : '🟢 Normal';
+        document.getElementById('urgentSub').textContent = `${(urgentProb * 100).toFixed(0)}% probability of urgency`;
+        const urgentBar = document.getElementById('urgentBar');
+        urgentBar.className = 'noul-fill ' + (isUrgent ? 'high' : 'low');
+        document.getElementById('urgentPct').textContent = (urgentProb * 100).toFixed(0) + '%';
+        requestAnimationFrame(() => {
+          urgentBar.style.width = (urgentProb * 100).toFixed(0) + '%';
+        });
+
+        // Sentiment
+        const sent = data.sentiment;
+        const sentimentEmoji = { angry: '😡', neutral: '😐', polite: '😊' };
+        document.getElementById('sentimentValue').textContent = (sentimentEmoji[sent.choice] || '') + ' ' + sent.choice;
+        document.getElementById('sentimentConf').textContent = (sent.confidence * 100).toFixed(0) + '%';
+        renderBars('sentimentBars', sent.probabilities, '#10b981');
+
+        results.style.display = 'block';
+      } catch (err) {
+        errorBox.textContent = '⚠ ' + err.message;
+        errorBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Analyze with Jev';
+      }
+    }
+
+    // Enter to submit
+    document.getElementById('messageInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.ctrlKey) analyze();
+    });
+  </script>
+</body>
+</html>
